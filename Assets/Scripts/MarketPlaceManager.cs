@@ -1,67 +1,87 @@
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using System.Collections.Generic;
 
 public class MarketplaceManager : MonoBehaviour
 {
     [Header("Items")]
-    public MarketplaceItem[] items;
-    private HashSet<MarketplaceItem> viewedItems = new HashSet<MarketplaceItem>();
+    [SerializeField] private MarketplaceItem[] items;
 
+    private readonly HashSet<MarketplaceItem> viewedItems = new HashSet<MarketplaceItem>();
     private int currentIndex;
 
     [Header("UI")]
-    public GameObject marketplacePanel;
+    [SerializeField] private GameObject marketplacePanel;
+    [SerializeField] private Image itemImage;
+    [SerializeField] private TMP_Text itemName;
+    [SerializeField] private TMP_Text price;
+    [SerializeField] private TMP_Text owner;
+    [SerializeField] private TMP_Text dateListed;
+    [SerializeField] private TMP_Text watchCount;
+    [SerializeField] private TMP_Text pageText;
 
-    public Image itemImage;
-
-    public TMP_Text itemName;
-
-    public TMP_Text price;
-
-    public TMP_Text owner;
-
-    public TMP_Text dateListed;
-
-    public TMP_Text watchCount;
-
-    public TMP_Text pageText;
-    
+    [Header("Player")]
+    [SerializeField] private PlayerController playerController;
 
     [Header("Model")]
-    public Transform modelSpawnPoint;
+    [SerializeField] private Transform modelSpawnPoint;
 
     private GameObject currentModel;
 
-    void Start()
+    public bool IsOpen => marketplacePanel != null && marketplacePanel.activeSelf;
+
+    private void Start()
     {
+        if (marketplacePanel != null)
+            marketplacePanel.SetActive(false);
+    }
+
+    public void OpenMarketplace()
+    {
+        if (marketplacePanel == null || items == null || items.Length == 0)
+        {
+            Debug.LogWarning("Marketplace is missing its panel or item list.", this);
+            return;
+        }
+
+        marketplacePanel.SetActive(true);
+
+        if (playerController != null)
+            playerController.SetInputEnabled(false);
+
         DisplayItem();
     }
 
-    void Update()
+    public void CloseMarketplace()
     {
-        if (Input.GetKeyDown(KeyCode.M))
-        {
-            marketplacePanel.SetActive(!marketplacePanel.activeSelf);
+        if (marketplacePanel != null)
+            marketplacePanel.SetActive(false);
 
-            if (marketplacePanel.activeSelf)
-                DisplayItem();
+        if (currentModel != null)
+        {
+            Destroy(currentModel);
+            currentModel = null;
         }
+
+        if (playerController != null)
+            playerController.SetInputEnabled(true);
     }
 
     public void NextItem()
     {
-        currentIndex++;
+        if (items == null || items.Length == 0)
+            return;
 
-        if (currentIndex >= items.Length)
-            currentIndex = 0;
-
+        currentIndex = (currentIndex + 1) % items.Length;
         DisplayItem();
     }
 
     public void PreviousItem()
     {
+        if (items == null || items.Length == 0)
+            return;
+
         currentIndex--;
 
         if (currentIndex < 0)
@@ -70,36 +90,35 @@ public class MarketplaceManager : MonoBehaviour
         DisplayItem();
     }
 
-    void DisplayItem()
+    private void DisplayItem()
     {
+        if (items == null || items.Length == 0)
+            return;
+
         MarketplaceItem item = items[currentIndex];
 
-        viewedItems.Add(item);
-        item.watchCount++;
+        // Count this player only once per item during the current play session.
+        if (viewedItems.Add(item))
+            item.watchCount++;
 
         itemImage.sprite = item.itemSprite;
-
         itemName.text = item.itemName;
-
         price.text = "Price: ₱" + item.price;
-
         owner.text = "Owner: " + item.ownerName;
-
         dateListed.text = "Listed: " + item.dateListed;
-
         watchCount.text = "👀 " + item.watchCount + " watching";
+        pageText.text = $"{currentIndex + 1} / {items.Length}";
 
-        pageText.text = (currentIndex + 1) + " / " + items.Length;
-
-        if(currentModel != null)
+        if (currentModel != null)
             Destroy(currentModel);
 
-        if(item.itemModel != null)
+        if (item.itemModel != null && modelSpawnPoint != null)
         {
             currentModel = Instantiate(
                 item.itemModel,
                 modelSpawnPoint.position,
-                Quaternion.identity
+                modelSpawnPoint.rotation,
+                modelSpawnPoint
             );
         }
     }
