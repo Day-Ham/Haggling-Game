@@ -106,7 +106,7 @@ public class MarketplaceManager : MonoBehaviour
         price.text = "Price: ₱" + item.price;
         owner.text = "Owner: " + item.ownerName;
         dateListed.text = "Listed: " + item.dateListed;
-        watchCount.text = "👀 " + item.watchCount + " watching";
+        watchCount.text = item.watchCount + " watching";
         pageText.text = $"{currentIndex + 1} / {items.Length}";
 
         if (currentModel != null)
